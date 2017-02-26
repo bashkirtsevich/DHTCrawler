@@ -5,6 +5,7 @@ import config
 from dbconnect import get_rtables
 from node import Node
 
+
 def main():
     node_num = config.NODE_NUM
     nodes = [None for i in range(node_num)]
@@ -21,4 +22,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

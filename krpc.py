@@ -10,8 +10,6 @@ from config import INITIAL_NODES
 from bencode import bencode, bdecode
 from dbconnect import save_info_hashs, save_rtable, save_get_peer_info_hashs
 
-
-
 K = 8
 NEW_K = 1500
 TABLE_NUM = 160
@@ -40,14 +38,13 @@ class DHTProtocol(KRPC):
         self.info_hashs = []
         self.get_peer_info_hashs = []
 
-        self.rtable_mutex = threading.Lock() 
+        self.rtable_mutex = threading.Lock()
 
-    
     def get_k_closest_nodes(self, id):
         rtable_index = utility.get_rtable_index(utility.xor(self.node_id, id))
-        
+
         k_closest_nodes = []
-        
+
         index = rtable_index
         while index >= 0 and len(k_closest_nodes) < K:
             for node in self.rtable[index]:
@@ -57,17 +54,16 @@ class DHTProtocol(KRPC):
                     break
             index -= 1
         index = rtable_index + 1
-        while index < 160  and len(k_closest_nodes) < K:
+        while index < 160 and len(k_closest_nodes) < K:
             for node in self.rtable[index]:
                 if len(k_closest_nodes) < K:
                     k_closest_nodes.append(node)
                 else:
                     break
             index += 1
-        
+
         return k_closest_nodes
 
-    
     def add_nodes_to_rtable(self, nodes):
         if self.rtable_mutex.acquire():
             for node in nodes:
@@ -82,7 +78,6 @@ class DHTProtocol(KRPC):
                         self.find_node(node)
             self.rtable_mutex.release()
 
-
     def handle_pi_qdata(self, data, addr):
         print "Receive ping query"
 
@@ -92,19 +87,18 @@ class DHTProtocol(KRPC):
         response["r"] = {}
         response["r"]["id"] = self.node_id
         response = bencode(response)
-        
+
         try:
             self.socket.sendto(response, addr)
         except:
             pass
 
-        
     def handle_fn_qdata(self, data, addr):
         print "Receive find node query"
-        
+
         target_node_id = data["a"]["target"]
         rtable_index = utility.get_rtable_index(utility.xor(self.node_id, target_node_id))
-        
+
         response_nodes = []
         for node in self.rtable[rtable_index]:
             if node[0] == target_node_id:
@@ -123,19 +117,18 @@ class DHTProtocol(KRPC):
         response["r"]["id"] = self.node_id
         response["r"]["nodes"] = node_message
         response = bencode(response)
-        
+
         try:
             self.socket.sendto(response, addr)
         except:
             pass
 
-    
     def handle_gp_qdata(self, data, addr):
         print "Receive get peer query"
-        
+
         info_hash = data["a"]["info_hash"]
         self.get_peer_info_hashs.append(info_hash)
-        
+
         if len(self.get_peer_info_hashs) >= 1000:
             save_get_peer_info_hashs(self.get_peer_info_hashs)
             self.get_peer_info_hashs = []
@@ -148,13 +141,12 @@ class DHTProtocol(KRPC):
         response["r"]["token"] = utility.generate_id(TOKEN_LENGTH)
         response["r"]["nodes"] = utility.encode_nodes(self.get_k_closest_nodes(data["a"]["info_hash"]))
         response = bencode(response)
-        
+
         try:
             self.socket.sendto(response, addr)
         except:
             pass
-    
-    
+
     def handle_ap_qdata(self, data, addr):
         print "(>_<)receive info_hash"
 
@@ -170,46 +162,41 @@ class DHTProtocol(KRPC):
         response["r"] = {}
         response["r"]["id"] = self.node_id
         response = bencode(response)
-        
+
         try:
             self.socket.sendto(response, addr)
         except:
             pass
-    
-    
+
     def handle_pi_rdata(self, data, addr):
         pass
-    
 
     def handle_fn_rdata(self, data, addr):
-        #print "Receive find node response"
+        # print "Receive find node response"
 
         node_message = data["r"]["nodes"]
         nodes = utility.decode_nodes(node_message)
         self.add_nodes_to_rtable(nodes)
-    
 
     def handle_gp_rdata(self, data, addr):
         pass
-    
 
     def handle_ap_rdata(self, data, addr):
         pass
-    
 
     def handle(self, data, addr):
         try:
             data = bdecode(data)
         except:
             return
-        
+
         query_handle_function = {
-            "ping" : self.handle_pi_qdata,
-            "find_node" : self.handle_fn_qdata,
-            "get_peers" : self.handle_gp_qdata,
-            "announce_peer" : self.handle_ap_qdata
+            "ping": self.handle_pi_qdata,
+            "find_node": self.handle_fn_qdata,
+            "get_peers": self.handle_gp_qdata,
+            "announce_peer": self.handle_ap_qdata
         }
-   
+
         try:
             type = data["y"]
             if type == "q":
@@ -223,12 +210,10 @@ class DHTProtocol(KRPC):
         except KeyError:
             pass
 
-
     def server(self):
         while True:
             data, addr = self.socket.recvfrom(65536)
-            self.handle(data, addr)        
-    
+            self.handle(data, addr)
 
     def client(self):
         if len(self.rtable) == 0:
@@ -238,16 +223,15 @@ class DHTProtocol(KRPC):
                 nodes.append([utility.generate_node_id(), inital_node])
             nodes.append([self.node_id, self.socket.getsockname()])
             self.add_nodes_to_rtable(nodes)
-        
+
         while True:
             self.find_nodes_using_rtable()
             self.save_rtable()
             time.sleep(4)
 
-
     def find_node(self, node):
         target_node_id = utility.generate_node_id()
-            
+
         query = {}
         query["t"] = utility.generate_id(TRANS_ID_LENGTH)
         query["y"] = "q"
@@ -256,13 +240,12 @@ class DHTProtocol(KRPC):
         query["a"]["id"] = self.node_id
         query["a"]["target"] = target_node_id
         query = bencode(query)
-        
+
         try:
             self.socket.sendto(query, tuple(node[1]))
         except:
             pass
 
-    
     def find_nodes_using_rtable(self):
         if self.rtable_mutex.acquire():
             for bucket in self.rtable:
@@ -270,18 +253,14 @@ class DHTProtocol(KRPC):
                     self.find_node(node)
             self.rtable_mutex.release()
 
-
     def save_rtable(self):
         if self.rtable_mutex.acquire():
             save_rtable(self.node_id, self.rtable, self.socket.getsockname())
             self.rtable_mutex.release()
 
-    
     def start(self):
-        client_thread = threading.Thread(target = self.client)
-        server_thread = threading.Thread(target = self.server)
-        
+        client_thread = threading.Thread(target=self.client)
+        server_thread = threading.Thread(target=self.server)
+
         client_thread.start()
         server_thread.start()
-
-        
