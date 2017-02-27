@@ -14,51 +14,47 @@ def main():
         database = client.dhtcrawler
 
         def get_routing_tables():
-            routing_tables_collection = database.rtables
+            routing_tables = list(database.routing_tables.find())
 
-            routing_tables = list(routing_tables_collection.find())
-
-            for rtable in routing_tables:
-                rtable["node_id"] = utility.from_hex_to_byte(rtable["node_id"])
-                for bucket in rtable["routing_table"]:
+            for routing_table in routing_tables:
+                routing_table["node_id"] = utility.from_hex_to_byte(routing_table["node_id"])
+                for bucket in routing_table["routing_table"]:
                     for node in bucket:
                         node[0] = utility.from_hex_to_byte(node[0])
 
             return routing_tables
 
         def save_routing_table(node_id, routing_table, address):
-            routing_tables_collection = database.rtables
+            coll = database.routing_tables
 
             node_id = utility.from_byte_to_hex(node_id)
             for bucket in routing_table:
                 for node in bucket:
                     node[0] = utility.from_byte_to_hex(node[0])
 
-            if routing_tables_collection.find_one({"node_id": node_id}):
-                routing_tables_collection.update({"node_id": node_id}, {"$set": {"routing_table": routing_table}})
+            if coll.find_one({"node_id": node_id}):
+                coll.update({"node_id": node_id}, {"$set": {"routing_table": routing_table}})
             else:
-                rtable_record = {
+                coll.insert({
                     "node_id": node_id,
                     "address": list(address),
                     "routing_table": routing_table
-                }
-                routing_tables_collection.insert(rtable_record)
+                })
 
             for bucket in routing_table:
                 for node in bucket:
                     node[0] = utility.from_hex_to_byte(node[0])
 
         def save_info_hashes(info_hash, host, port, announce_port):
-            info_hashs_collection = database.info_hashs
+            coll = database.info_hashes
 
-            info_hash_record = {
+            coll.insert({
                 "value": utility.from_byte_to_hex(info_hash),
                 "host": host,
                 "port": port,
                 "announce_port": announce_port,
                 "date": datetime.datetime.utcnow()
-            }
-            info_hashs_collection.insert(info_hash_record)
+            })
 
         def save_get_peer_info_hashes(info_hash):
             get_peer_info_hashes_collection = database.get_peer_info_hashs
@@ -70,23 +66,28 @@ def main():
             get_peer_info_hashes_collection.insert(get_peer_info_hash_record)
 
         node_num = config.NODE_NUM
-        nodes = [None for i in range(node_num)]
+        nodes = []
 
-        rtables = get_routing_tables()
+        routing_tables = get_routing_tables()
 
-        for i in range(min(node_num, len(rtables))):
-            nodes[i] = Node(rtables[i]["node_id"], rtables[i]["routing_table"], tuple(rtables[i]["address"]),
-                            on_get_peers=save_get_peer_info_hashes,
-                            on_announce=save_info_hashes,
-                            on_save_routing_table=save_routing_table)
-            nodes[i].protocol.start()
+        for i in range(min(node_num, len(routing_tables))):
+            node = Node(routing_tables[i]["node_id"], routing_tables[i]["routing_table"],
+                        tuple(routing_tables[i]["address"]),
+                        on_get_peers=save_get_peer_info_hashes,
+                        on_announce=save_info_hashes,
+                        on_save_routing_table=save_routing_table)
 
-        for i in range(len(rtables), node_num):
-            nodes[i] = Node(address=("0.0.0.0", 12346),
-                            on_get_peers=save_get_peer_info_hashes,
-                            on_announce=save_info_hashes,
-                            on_save_routing_table=save_routing_table)
-            nodes[i].protocol.start()
+            node.protocol.start()
+            nodes.append(node)
+
+        for i in range(len(routing_tables), node_num):
+            node = Node(address=("0.0.0.0", 12346),
+                        on_get_peers=save_get_peer_info_hashes,
+                        on_announce=save_info_hashes,
+                        on_save_routing_table=save_routing_table)
+
+            node.protocol.start()
+            nodes.append(node)
     finally:
         client.close()
 
