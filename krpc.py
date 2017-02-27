@@ -5,7 +5,7 @@ import time
 import random
 import socket
 import utility
-from threading import Lock
+from threading import Lock, Thread
 from config import INITIAL_NODES
 from bencode import bencode, bdecode
 
@@ -85,7 +85,7 @@ class DHTProtocol(KRPC):
                     else:
                         self.find_node(node)
 
-    def handle_pi_qdata(self, data, address):
+    def handle_ping_query(self, data, address):
         print "Receive ping query"
 
         response = bencode({
@@ -98,7 +98,7 @@ class DHTProtocol(KRPC):
 
         self._send(response, address)
 
-    def handle_fn_qdata(self, data, address):
+    def handle_find_nodes_query(self, data, address):
         print "Receive find node query"
 
         target_node_id = data["a"]["target"]
@@ -126,7 +126,7 @@ class DHTProtocol(KRPC):
 
         self._send(response, address)
 
-    def handle_gp_qdata(self, data, address):
+    def handle_get_peers_query(self, data, address):
         print "Receive get peer query"
 
         info_hash = data["a"]["info_hash"]
@@ -148,7 +148,7 @@ class DHTProtocol(KRPC):
 
         self._send(response, address)
 
-    def handle_ap_qdata(self, data, address):
+    def handle_announce_peer_query(self, data, address):
         print "(>_<)receive info_hash"
 
         arguments = data["a"]
@@ -170,20 +170,20 @@ class DHTProtocol(KRPC):
 
         self._send(response, address)
 
-    def handle_pi_rdata(self, data, address):
+    def handle_ping_response(self, data, address):
         pass
 
-    def handle_fn_rdata(self, data, address):
+    def handle_find_node_response(self, data, address):
         # print "Receive find node response"
 
         node_message = data["r"]["nodes"]
         nodes = utility.decode_nodes(node_message)
         self.add_nodes_to_rtable(nodes)
 
-    def handle_gp_rdata(self, data, address):
+    def handle_get_peers_response(self, data, address):
         pass
 
-    def handle_ap_rdata(self, data, address):
+    def handle_announce_peer_response(self, data, address):
         pass
 
     def handle(self, data, address):
@@ -193,10 +193,10 @@ class DHTProtocol(KRPC):
             return
 
         query_handle_function = {
-            "ping": self.handle_pi_qdata,
-            "find_node": self.handle_fn_qdata,
-            "get_peers": self.handle_gp_qdata,
-            "announce_peer": self.handle_ap_qdata
+            "ping": self.handle_ping_query,
+            "find_node": self.handle_find_nodes_query,
+            "get_peers": self.handle_get_peers_query,
+            "announce_peer": self.handle_announce_peer_query
         }
 
         try:
@@ -206,9 +206,9 @@ class DHTProtocol(KRPC):
                     query_handle_function[data["q"]](data, address)
             elif type == "r":
                 if data["r"].has_key("token"):
-                    self.handle_gp_rdata(data, address)
+                    self.handle_get_peers_response(data, address)
                 elif data["r"].has_key("nodes"):
-                    self.handle_fn_rdata(data, address)
+                    self.handle_find_node_response(data, address)
         except KeyError:
             pass
 
@@ -261,8 +261,8 @@ class DHTProtocol(KRPC):
                 self._on_save_routing_table(self.node_id, self.routing_table, self._get_sock_name())
 
     def start(self):
-        client_thread = threading.Thread(target=self.client)
-        server_thread = threading.Thread(target=self.server)
+        client_thread = Thread(target=self.client)
+        server_thread = Thread(target=self.server)
 
         client_thread.start()
         server_thread.start()
