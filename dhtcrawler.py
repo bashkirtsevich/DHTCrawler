@@ -46,6 +46,8 @@ def main():
                     node[0] = utility.from_hex_to_byte(node[0])
 
         def save_info_hashes(info_hash, host, port, announce_port):
+            print "Announce hash", utility.from_byte_to_hex(info_hash), host, port, announce_port
+
             coll = database.info_hashes
 
             coll.insert({
@@ -57,6 +59,8 @@ def main():
             })
 
         def save_get_peer_info_hashes(info_hash):
+            print "Get peers", utility.from_byte_to_hex(info_hash)
+
             get_peer_info_hashes_collection = database.get_peer_info_hashs
 
             get_peer_info_hash_record = {

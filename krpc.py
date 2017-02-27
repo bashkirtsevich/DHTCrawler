@@ -126,8 +126,6 @@ class DHTProtocol(KRPC):
         self._send(response, address)
 
     def handle_get_peers_query(self, data, address):
-        print "Receive get peer query"
-
         info_hash = data["a"]["info_hash"]
 
         response = bencode({
@@ -136,7 +134,7 @@ class DHTProtocol(KRPC):
             "r": {
                 "id": self.node_id,
                 "token": utility.generate_id(TOKEN_LENGTH),
-                "nodes": utility.encode_nodes(self.get_k_closest_nodes(data["a"]["info_hash"]))
+                "nodes": utility.encode_nodes(self.get_k_closest_nodes(info_hash))
             }
         })
 
@@ -146,8 +144,6 @@ class DHTProtocol(KRPC):
             self._on_get_peers(info_hash)
 
     def handle_announce_peer_query(self, data, address):
-        print "(>_<)receive info_hash"
-
         arguments = data["a"]
         info_hash = arguments["info_hash"]
         announce_port = arguments["port"]
