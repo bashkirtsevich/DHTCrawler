@@ -5,6 +5,7 @@ import math
 import socket
 import struct
 from hashlib import sha1
+from uuid import uuid4
 from random import randint
 
 
@@ -17,9 +18,7 @@ def generate_id(length):
 
 
 def generate_node_id():
-    hash = sha1()
-    hash.update(generate_id(20))
-    return hash.digest()
+    return sha1(sha1(uuid4().bytes).digest()).digest()
 
 
 def from_hex_to_byte(hex_string):
