@@ -6,11 +6,10 @@ import pymongo
 import utility
 import datetime
 from node import Node
-from config import MONGODB_HOST, MONGODB_PORT
 
 
 def main():
-    client = pymongo.MongoClient(MONGODB_HOST, MONGODB_PORT)
+    client = pymongo.MongoClient("mongodb://localhost:27017/")
     try:
         database = client.dhtcrawler
 

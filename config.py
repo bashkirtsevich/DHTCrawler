@@ -9,7 +9,3 @@ INITIAL_NODES = [
     ("dht.transmissionbt.com", 6881),
     ("router.utorrent.com", 6881)
 ]
-
-# database config
-MONGODB_HOST = "127.0.0.1"
-MONGODB_PORT = 27017
