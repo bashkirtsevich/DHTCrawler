@@ -20,7 +20,7 @@ def main():
 
             for rtable in routing_tables:
                 rtable["node_id"] = utility.from_hex_to_byte(rtable["node_id"])
-                for bucket in rtable["rtable"]:
+                for bucket in rtable["routing_table"]:
                     for node in bucket:
                         node[0] = utility.from_hex_to_byte(node[0])
 
@@ -35,12 +35,12 @@ def main():
                     node[0] = utility.from_byte_to_hex(node[0])
 
             if routing_tables_collection.find_one({"node_id": node_id}):
-                routing_tables_collection.update({"node_id": node_id}, {"$set": {"rtable": routing_table}})
+                routing_tables_collection.update({"node_id": node_id}, {"$set": {"routing_table": routing_table}})
             else:
                 rtable_record = {
                     "node_id": node_id,
-                    "addr": list(address),
-                    "rtable": routing_table
+                    "address": list(address),
+                    "routing_table": routing_table
                 }
                 routing_tables_collection.insert(rtable_record)
 
@@ -65,7 +65,7 @@ def main():
 
             get_peer_info_hash_record = {
                 "value": utility.from_byte_to_hex(info_hash),
-                "date": datetime.datetime.utcnow()
+                "timestamp": datetime.datetime.utcnow()
             }
             get_peer_info_hashes_collection.insert(get_peer_info_hash_record)
 
@@ -75,19 +75,17 @@ def main():
         rtables = get_routing_tables()
 
         for i in range(min(node_num, len(rtables))):
-            nodes[i] = Node(rtables[i]["node_id"], rtables[i]["rtable"], tuple(rtables[i]["addr"]),
+            nodes[i] = Node(rtables[i]["node_id"], rtables[i]["routing_table"], tuple(rtables[i]["address"]),
                             on_get_peers=save_get_peer_info_hashes,
                             on_announce=save_info_hashes,
-                            on_save_routing_table=save_routing_table
-                            )
+                            on_save_routing_table=save_routing_table)
             nodes[i].protocol.start()
 
         for i in range(len(rtables), node_num):
             nodes[i] = Node(address=("0.0.0.0", 12346),
                             on_get_peers=save_get_peer_info_hashes,
                             on_announce=save_info_hashes,
-                            on_save_routing_table=save_routing_table
-                            )
+                            on_save_routing_table=save_routing_table)
             nodes[i].protocol.start()
     finally:
         client.close()
