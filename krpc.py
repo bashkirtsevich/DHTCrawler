@@ -47,6 +47,7 @@ class DHTProtocol(KRPC):
                 else:
                     break
             index -= 1
+
         index = rtable_index + 1
         while index < 160 and len(k_closest_nodes) < K:
             for node in self.routing_table[index]:
@@ -252,10 +253,12 @@ class DHTProtocol(KRPC):
 
     def find_nodes_using_rtable(self):
         if self.rtable_mutex.acquire():
-            for bucket in self.routing_table:
-                for node in bucket:
-                    self.find_node(node)
-            self.rtable_mutex.release()
+            try:
+                for bucket in self.routing_table:
+                    for node in bucket:
+                        self.find_node(node)
+            finally:
+                self.rtable_mutex.release()
 
     def save_rtable(self):
         if self.rtable_mutex.acquire():
