@@ -17,7 +17,7 @@ def main():
         nodes[i].protocol.start()
 
     for i in range(len(rtables), node_num):
-        nodes[i] = Node()
+        nodes[i] = Node(address=("0.0.0.0", 12346))
         nodes[i].protocol.start()
 
 
