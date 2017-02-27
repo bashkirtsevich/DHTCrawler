@@ -11,5 +11,5 @@ INITIAL_NODES = [
 ]
 
 # database config
-HOST = "127.0.0.1"
-PORT = 27017
+MONGODB_HOST = "127.0.0.1"
+MONGODB_PORT = 27017

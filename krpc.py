@@ -8,7 +8,7 @@ import utility
 import threading
 from config import INITIAL_NODES
 from bencode import bencode, bdecode
-from dbconnect import save_info_hashs, save_rtable, save_get_peer_info_hashs
+from dbconnect import save_info_hashes, save_routing_table, save_get_peer_info_hashes
 
 K = 8
 NEW_K = 1500
@@ -129,7 +129,7 @@ class DHTProtocol(KRPC):
         self.get_peer_info_hash_list.append(info_hash)
 
         if len(self.get_peer_info_hash_list) >= 1000:
-            save_get_peer_info_hashs(self.get_peer_info_hash_list)
+            save_get_peer_info_hashes(self.get_peer_info_hash_list)
             self.get_peer_info_hash_list = []
 
         response = bencode({
@@ -153,7 +153,7 @@ class DHTProtocol(KRPC):
         info_hash = data["a"]["info_hash"]
         self.info_hash_list.append(info_hash)
         if len(self.info_hash_list) >= 100:
-            save_info_hashs(self.info_hash_list)
+            save_info_hashes(self.info_hash_list)
             self.info_hash_list = []
 
         response = bencode({
@@ -263,7 +263,7 @@ class DHTProtocol(KRPC):
     def save_rtable(self):
         if self.rtable_mutex.acquire():
             try:
-                save_rtable(self.node_id, self.routing_table, self.socket.getsockname())
+                save_routing_table(self.node_id, self.routing_table, self.socket.getsockname())
             finally:
                 self.rtable_mutex.release()
 

@@ -2,7 +2,7 @@
 # coding=utf-8
 
 import config
-from dbconnect import get_rtables
+from dbconnect import get_routing_tables
 from node import Node
 
 
@@ -10,7 +10,7 @@ def main():
     node_num = config.NODE_NUM
     nodes = [None for i in range(node_num)]
 
-    rtables = get_rtables()
+    rtables = get_routing_tables()
 
     for i in range(min(node_num, len(rtables))):
         nodes[i] = Node(rtables[i]["node_id"], rtables[i]["rtable"], tuple(rtables[i]["addr"]))
