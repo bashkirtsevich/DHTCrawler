@@ -131,11 +131,6 @@ class DHTProtocol(KRPC):
 
         info_hash = data["a"]["info_hash"]
 
-        host, port = address
-
-        if self._on_get_peers is not None:
-            self._on_get_peers(info_hash)
-
         response = bencode({
             "t": data["t"],
             "y": "r",
@@ -148,6 +143,9 @@ class DHTProtocol(KRPC):
 
         self._send(response, address)
 
+        if self._on_get_peers is not None:
+            self._on_get_peers(info_hash)
+
     def handle_announce_peer_query(self, data, address):
         print "(>_<)receive info_hash"
 
@@ -156,9 +154,6 @@ class DHTProtocol(KRPC):
         announce_port = arguments["port"]
 
         host, port = address
-
-        if self._on_announce is not None:
-            self._on_announce(info_hash, host, port, announce_port)
 
         response = bencode({
             "t": data["t"],
@@ -169,6 +164,9 @@ class DHTProtocol(KRPC):
         })
 
         self._send(response, address)
+
+        if self._on_announce is not None:
+            self._on_announce(info_hash, host, port, announce_port)
 
     def handle_ping_response(self, data, address):
         pass
