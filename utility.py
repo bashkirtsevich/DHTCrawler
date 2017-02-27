@@ -18,7 +18,7 @@ def generate_id(length):
 
 
 def generate_node_id():
-    return sha1(sha1(uuid4().bytes).digest()).digest()
+    return sha1(uuid4().bytes).digest()
 
 
 def from_hex_to_byte(hex_string):
