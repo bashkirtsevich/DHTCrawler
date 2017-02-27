@@ -20,8 +20,20 @@ TRANS_ID_LENGTH = 2
 
 class KRPC(object):
     def __init__(self, address):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        self.socket.bind(address)
+        self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        self.__socket.bind(address)
+
+    def _send(self, data, address):
+        try:
+            self.__socket.sendto(data, address)
+        except:
+            pass
+
+    def _receive(self):
+        return self.__socket.recvfrom(65536)
+
+    def _get_sock_name(self):
+        return self.__socket.getsockname()
 
 
 class DHTProtocol(KRPC):
@@ -86,10 +98,7 @@ class DHTProtocol(KRPC):
             }
         })
 
-        try:
-            self.socket.sendto(response, address)
-        except:
-            pass
+        self._send(response, address)
 
     def handle_fn_qdata(self, data, address):
         print "Receive find node query"
@@ -117,10 +126,7 @@ class DHTProtocol(KRPC):
             }
         })
 
-        try:
-            self.socket.sendto(response, address)
-        except:
-            pass
+        self._send(response, address)
 
     def handle_gp_qdata(self, data, address):
         print "Receive get peer query"
@@ -142,10 +148,7 @@ class DHTProtocol(KRPC):
             }
         })
 
-        try:
-            self.socket.sendto(response, address)
-        except:
-            pass
+        self._send(response, address)
 
     def handle_ap_qdata(self, data, address):
         print "(>_<)receive info_hash"
@@ -164,10 +167,7 @@ class DHTProtocol(KRPC):
             }
         })
 
-        try:
-            self.socket.sendto(response, address)
-        except:
-            pass
+        self._send(response, address)
 
     def handle_pi_rdata(self, data, address):
         pass
@@ -213,7 +213,7 @@ class DHTProtocol(KRPC):
 
     def server(self):
         while True:
-            data, address = self.socket.recvfrom(65536)
+            data, address = self._receive()
             self.handle(data, address)
 
     def client(self):
@@ -224,7 +224,7 @@ class DHTProtocol(KRPC):
             for initial_node in INITIAL_NODES:
                 nodes.append([utility.generate_node_id(), initial_node])
 
-            nodes.append([self.node_id, self.socket.getsockname()])
+            nodes.append([self.node_id, self._get_sock_name()])
             self.add_nodes_to_rtable(nodes)
 
         while True:
@@ -246,10 +246,7 @@ class DHTProtocol(KRPC):
             }
         })
 
-        try:
-            self.socket.sendto(query, tuple(node[1]))
-        except:
-            pass
+        self._send(query, tuple(node[1]))
 
     def find_nodes_using_rtable(self):
         if self.rtable_mutex.acquire():
@@ -263,7 +260,7 @@ class DHTProtocol(KRPC):
     def save_rtable(self):
         if self.rtable_mutex.acquire():
             try:
-                save_routing_table(self.node_id, self.routing_table, self.socket.getsockname())
+                save_routing_table(self.node_id, self.routing_table, self._get_sock_name())
             finally:
                 self.rtable_mutex.release()
 
