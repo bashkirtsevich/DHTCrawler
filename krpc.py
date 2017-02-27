@@ -5,7 +5,7 @@ import time
 import random
 import socket
 import utility
-import threading
+from threading import Lock
 from config import INITIAL_NODES
 from bencode import bencode, bdecode
 
@@ -45,7 +45,7 @@ class DHTProtocol(KRPC):
         self._on_announce = kwargs["on_announce"] if "on_announce" in kwargs else None
         self._on_save_routing_table = kwargs["on_save_routing_table"] if "on_save_routing_table" in kwargs else None
 
-        self.rtable_mutex = threading.Lock()
+        self.routing_table_lock = Lock()
 
     def get_k_closest_nodes(self, id):
         rtable_index = utility.get_rtable_index(utility.xor(self.node_id, id))
@@ -73,20 +73,17 @@ class DHTProtocol(KRPC):
         return k_closest_nodes
 
     def add_nodes_to_rtable(self, nodes):
-        if self.rtable_mutex.acquire():
-            try:
-                for node in nodes:
-                    rtable_index = utility.get_rtable_index(utility.xor(node[0], self.node_id))
-                    if len(self.routing_table[rtable_index]) < NEW_K:
-                        self.routing_table[rtable_index].append(node)
+        with self.routing_table_lock:
+            for node in nodes:
+                rtable_index = utility.get_rtable_index(utility.xor(node[0], self.node_id))
+                if len(self.routing_table[rtable_index]) < NEW_K:
+                    self.routing_table[rtable_index].append(node)
+                else:
+                    if random.randint(0, 1):
+                        index = random.randint(0, NEW_K - 1)
+                        self.routing_table[rtable_index][index] = node
                     else:
-                        if random.randint(0, 1):
-                            index = random.randint(0, NEW_K - 1)
-                            self.routing_table[rtable_index][index] = node
-                        else:
-                            self.find_node(node)
-            finally:
-                self.rtable_mutex.release()
+                        self.find_node(node)
 
     def handle_pi_qdata(self, data, address):
         print "Receive ping query"
@@ -253,21 +250,15 @@ class DHTProtocol(KRPC):
         self._send(query, tuple(node[1]))
 
     def find_nodes_using_routing_table(self):
-        if self.rtable_mutex.acquire():
-            try:
-                for bucket in self.routing_table:
-                    for node in bucket:
-                        self.find_node(node)
-            finally:
-                self.rtable_mutex.release()
+        with self.routing_table_lock:
+            for bucket in self.routing_table:
+                for node in bucket:
+                    self.find_node(node)
 
     def save_routing_table(self):
-        if self.rtable_mutex.acquire():
-            try:
-                if self._on_save_routing_table is not None:
-                    self._on_save_routing_table(self.node_id, self.routing_table, self._get_sock_name())
-            finally:
-                self.rtable_mutex.release()
+        with self.routing_table_lock:
+            if self._on_save_routing_table is not None:
+                self._on_save_routing_table(self.node_id, self.routing_table, self._get_sock_name())
 
     def start(self):
         client_thread = threading.Thread(target=self.client)
