@@ -8,7 +8,6 @@ import utility
 import threading
 from config import INITIAL_NODES
 from bencode import bencode, bdecode
-from dbconnect import save_info_hashes, save_routing_table, save_get_peer_info_hashes
 
 K = 8
 NEW_K = 1500
@@ -37,12 +36,14 @@ class KRPC(object):
 
 
 class DHTProtocol(KRPC):
-    def __init__(self, node_id, routing_table, address):
+    def __init__(self, node_id, routing_table, address, **kwargs):
         super(DHTProtocol, self).__init__(address)
         self.node_id = node_id
         self.routing_table = routing_table
-        self.info_hash_list = []
-        self.get_peer_info_hash_list = []
+
+        self._on_get_peers = kwargs["on_get_peers"] if "on_get_peers" in kwargs else None
+        self._on_announce = kwargs["on_announce"] if "on_announce" in kwargs else None
+        self._on_save_routing_table = kwargs["on_save_routing_table"] if "on_save_routing_table" in kwargs else None
 
         self.rtable_mutex = threading.Lock()
 
@@ -132,11 +133,11 @@ class DHTProtocol(KRPC):
         print "Receive get peer query"
 
         info_hash = data["a"]["info_hash"]
-        self.get_peer_info_hash_list.append(info_hash)
 
-        if len(self.get_peer_info_hash_list) >= 1000:
-            save_get_peer_info_hashes(self.get_peer_info_hash_list)
-            self.get_peer_info_hash_list = []
+        host, port = address
+
+        if self._on_get_peers is not None:
+            self._on_get_peers(info_hash)
 
         response = bencode({
             "t": data["t"],
@@ -153,11 +154,14 @@ class DHTProtocol(KRPC):
     def handle_ap_qdata(self, data, address):
         print "(>_<)receive info_hash"
 
-        info_hash = data["a"]["info_hash"]
-        self.info_hash_list.append(info_hash)
-        if len(self.info_hash_list) >= 100:
-            save_info_hashes(self.info_hash_list)
-            self.info_hash_list = []
+        arguments = data["a"]
+        info_hash = arguments["info_hash"]
+        announce_port = arguments["port"]
+
+        host, port = address
+
+        if self._on_announce is not None:
+            self._on_announce(info_hash, host, port, announce_port)
 
         response = bencode({
             "t": data["t"],
@@ -228,8 +232,8 @@ class DHTProtocol(KRPC):
             self.add_nodes_to_rtable(nodes)
 
         while True:
-            self.find_nodes_using_rtable()
-            self.save_rtable()
+            self.find_nodes_using_routing_table()
+            self.save_routing_table()
 
             time.sleep(4)
 
@@ -248,7 +252,7 @@ class DHTProtocol(KRPC):
 
         self._send(query, tuple(node[1]))
 
-    def find_nodes_using_rtable(self):
+    def find_nodes_using_routing_table(self):
         if self.rtable_mutex.acquire():
             try:
                 for bucket in self.routing_table:
@@ -257,10 +261,11 @@ class DHTProtocol(KRPC):
             finally:
                 self.rtable_mutex.release()
 
-    def save_rtable(self):
+    def save_routing_table(self):
         if self.rtable_mutex.acquire():
             try:
-                save_routing_table(self.node_id, self.routing_table, self._get_sock_name())
+                if self._on_save_routing_table is not None:
+                    self._on_save_routing_table(self.node_id, self.routing_table, self._get_sock_name())
             finally:
                 self.rtable_mutex.release()
 
