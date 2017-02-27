@@ -38,7 +38,7 @@ class KRPC(object):
 
 class DHTProtocol(KRPC):
     def __init__(self, node_id, routing_table, address):
-        KRPC.__init__(self, address)
+        super(DHTProtocol, self).__init__(address)
         self.node_id = node_id
         self.routing_table = routing_table
         self.info_hash_list = []
