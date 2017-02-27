@@ -28,7 +28,10 @@ class KRPC(object):
             pass
 
     def _receive(self):
-        return self.__socket.recvfrom(65536)
+        try:
+            return self.__socket.recvfrom(65536)
+        except:
+            return None
 
     def _get_sock_name(self):
         return self.__socket.getsockname()
@@ -207,8 +210,9 @@ class DHTProtocol(KRPC):
 
     def server(self):
         while True:
-            data, address = self._receive()
-            self.handle(data, address)
+            receive_info = self._receive()
+            if receive_info is not None:
+                self.handle(*receive_info)
 
     def client(self):
         if len(self.routing_table) == 0:
