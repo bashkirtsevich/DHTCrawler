@@ -213,9 +213,9 @@ class DHTProtocol(KRPC):
                 if data["q"] in query_handle_function.keys():
                     query_handle_function[data["q"]](data, address)
             elif type == "r":
-                if data["r"].has_key("token"):
+                if "token" in data["r"]:
                     self.handle_get_peers_response(data, address)
-                elif data["r"].has_key("nodes"):
+                elif "nodes" in data["r"]:
                     self.handle_find_node_response(data, address)
         except KeyError:
             pass
