@@ -67,7 +67,7 @@ def main():
         def save_get_peer_info_hashes(info_hash):
             print "Get peers", utility.from_byte_to_hex(info_hash)
 
-            get_peer_info_hashes_collection = database.get_peer_info_hashs
+            get_peer_info_hashes_collection = database.get_peer_info_hashes
 
             get_peer_info_hash_record = {
                 "value": utility.from_byte_to_hex(info_hash),
