@@ -13,6 +13,12 @@ def main():
     try:
         database = client.dhtcrawler
 
+        def print_ping_event():
+            print "Receive ping"
+
+        def print_find_nodes_event():
+            print "Find nodes"
+
         def get_routing_tables():
             routing_tables = list(database.routing_tables.find())
 
@@ -77,6 +83,8 @@ def main():
         for i in range(min(node_num, len(routing_tables))):
             node = Node(routing_tables[i]["node_id"], routing_tables[i]["routing_table"],
                         tuple(routing_tables[i]["address"]),
+                        on_ping=print_ping_event,
+                        on_find_nodes=print_find_nodes_event,
                         on_get_peers=save_get_peer_info_hashes,
                         on_announce=save_info_hashes,
                         on_save_routing_table=save_routing_table)
@@ -86,6 +94,8 @@ def main():
 
         for i in range(len(routing_tables), node_num):
             node = Node(address=("0.0.0.0", 12346),
+                        on_ping=print_ping_event,
+                        on_find_nodes=print_find_nodes_event,
                         on_get_peers=save_get_peer_info_hashes,
                         on_announce=save_info_hashes,
                         on_save_routing_table=save_routing_table)

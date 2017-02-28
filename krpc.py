@@ -43,6 +43,8 @@ class DHTProtocol(KRPC):
         self.node_id = node_id
         self.routing_table = routing_table
 
+        self._on_ping = kwargs["on_ping"] if "on_ping" in kwargs else None
+        self._on_find_nodes = kwargs["on_find_nodes"] if "on_find_nodes" in kwargs else None
         self._on_get_peers = kwargs["on_get_peers"] if "on_get_peers" in kwargs else None
         self._on_announce = kwargs["on_announce"] if "on_announce" in kwargs else None
         self._on_save_routing_table = kwargs["on_save_routing_table"] if "on_save_routing_table" in kwargs else None
@@ -88,8 +90,6 @@ class DHTProtocol(KRPC):
                         self.find_node(node)
 
     def handle_ping_query(self, data, address):
-        print "Receive ping query"
-
         response = bencode({
             "t": data["t"],
             "y": "r",
@@ -100,9 +100,10 @@ class DHTProtocol(KRPC):
 
         self._send(response, address)
 
-    def handle_find_nodes_query(self, data, address):
-        print "Receive find node query"
+        if self._on_ping is not None:
+            self._on_ping()
 
+    def handle_find_nodes_query(self, data, address):
         target_node_id = data["a"]["target"]
         rtable_index = utility.get_rtable_index(utility.xor(self.node_id, target_node_id))
 
@@ -127,6 +128,9 @@ class DHTProtocol(KRPC):
         })
 
         self._send(response, address)
+
+        if self._on_find_nodes is not None:
+            self._on_find_nodes()
 
     def handle_get_peers_query(self, data, address):
         info_hash = data["a"]["info_hash"]
@@ -170,8 +174,6 @@ class DHTProtocol(KRPC):
         pass
 
     def handle_find_node_response(self, data, address):
-        # print "Receive find node response"
-
         node_message = data["r"]["nodes"]
         nodes = utility.decode_nodes(node_message)
         self.add_nodes_to_rtable(nodes)
@@ -208,13 +210,13 @@ class DHTProtocol(KRPC):
         except KeyError:
             pass
 
-    def server(self):
+    def __server(self):
         while True:
             receive_info = self._receive()
             if receive_info is not None:
                 self.handle(*receive_info)
 
-    def client(self):
+    def __client(self):
         if len(self.routing_table) == 0:
             nodes = []
             self.routing_table = [[] for i in range(TABLE_NUM)]
@@ -258,8 +260,8 @@ class DHTProtocol(KRPC):
                 self._on_save_routing_table(self.node_id, self.routing_table, self._get_sock_name())
 
     def start(self):
-        client_thread = Thread(target=self.client)
-        server_thread = Thread(target=self.server)
+        client_thread = Thread(target=self.__client)
+        server_thread = Thread(target=self.__server)
 
         client_thread.start()
         server_thread.start()
