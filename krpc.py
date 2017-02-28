@@ -51,6 +51,9 @@ class DHTProtocol(KRPC):
 
         self.routing_table_lock = Lock()
 
+    def _send_message(self, message, address):
+        self._send(bencode(message))
+
     def get_k_closest_nodes(self, id):
         rtable_index = utility.get_rtable_index(utility.xor(self.node_id, id))
 
@@ -90,15 +93,15 @@ class DHTProtocol(KRPC):
                         self.find_node(node)
 
     def handle_ping_query(self, data, address):
-        response = bencode({
+        response = {
             "t": data["t"],
             "y": "r",
             "r": {
                 "id": self.node_id
             }
-        })
+        }
 
-        self._send(response, address)
+        self._send_message(response, address)
 
         if self._on_ping is not None:
             self._on_ping()
@@ -118,16 +121,16 @@ class DHTProtocol(KRPC):
 
         node_message = utility.encode_nodes(response_nodes)
 
-        response = bencode({
+        response = {
             "t": data["t"],
             "y": "r",
             "r": {
                 "id": self.node_id,
                 "nodes": node_message
             }
-        })
+        }
 
-        self._send(response, address)
+        self._send_message(response, address)
 
         if self._on_find_nodes is not None:
             self._on_find_nodes()
@@ -135,7 +138,7 @@ class DHTProtocol(KRPC):
     def handle_get_peers_query(self, data, address):
         info_hash = data["a"]["info_hash"]
 
-        response = bencode({
+        response = {
             "t": data["t"],
             "y": "r",
             "r": {
@@ -143,9 +146,9 @@ class DHTProtocol(KRPC):
                 "token": utility.generate_id(TOKEN_LENGTH),
                 "nodes": utility.encode_nodes(self.get_k_closest_nodes(info_hash))
             }
-        })
+        }
 
-        self._send(response, address)
+        self._send_message(response, address)
 
         if self._on_get_peers is not None:
             self._on_get_peers(info_hash)
@@ -157,15 +160,15 @@ class DHTProtocol(KRPC):
 
         host, port = address
 
-        response = bencode({
+        response = {
             "t": data["t"],
             "y": "r",
             "r": {
                 "id": self.node_id
             }
-        })
+        }
 
-        self._send(response, address)
+        self._send_message(response, address)
 
         if self._on_announce is not None:
             self._on_announce(info_hash, host, port, announce_port)
@@ -236,7 +239,7 @@ class DHTProtocol(KRPC):
     def find_node(self, node):
         target_node_id = utility.generate_node_id()
 
-        query = bencode({
+        query = {
             "t": utility.generate_id(TRANS_ID_LENGTH),
             "y": "q",
             "q": "find_node",
@@ -244,9 +247,9 @@ class DHTProtocol(KRPC):
                 "id": self.node_id,
                 "target": target_node_id
             }
-        })
+        }
 
-        self._send(query, tuple(node[1]))
+        self._send_message(query, tuple(node[1]))
 
     def find_nodes_using_routing_table(self):
         with self.routing_table_lock:
