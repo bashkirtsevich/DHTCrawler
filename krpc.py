@@ -4,7 +4,14 @@
 import time
 import random
 import socket
-import utility
+
+from utility import generate_id
+from utility import encode_nodes
+from utility import get_rtable_index
+from utility import xor
+from utility import decode_nodes
+from utility import generate_node_id
+
 from threading import Lock, Thread
 from config import INITIAL_NODES
 from bencode import bencode, bdecode
@@ -55,7 +62,7 @@ class DHTProtocol(KRPC):
         self._send(bencode(message))
 
     def get_k_closest_nodes(self, id):
-        rtable_index = utility.get_rtable_index(utility.xor(self.node_id, id))
+        rtable_index = get_rtable_index(xor(self.node_id, id))
 
         k_closest_nodes = []
 
@@ -82,7 +89,7 @@ class DHTProtocol(KRPC):
     def add_nodes_to_rtable(self, nodes):
         with self.routing_table_lock:
             for node in nodes:
-                rtable_index = utility.get_rtable_index(utility.xor(node[0], self.node_id))
+                rtable_index = get_rtable_index(xor(node[0], self.node_id))
                 if len(self.routing_table[rtable_index]) < NEW_K:
                     self.routing_table[rtable_index].append(node)
                 else:
@@ -108,7 +115,7 @@ class DHTProtocol(KRPC):
 
     def handle_find_nodes_query(self, data, address):
         target_node_id = data["a"]["target"]
-        rtable_index = utility.get_rtable_index(utility.xor(self.node_id, target_node_id))
+        rtable_index = get_rtable_index(xor(self.node_id, target_node_id))
 
         response_nodes = []
         for node in self.routing_table[rtable_index]:
@@ -119,7 +126,7 @@ class DHTProtocol(KRPC):
         if len(response_nodes) == 0:
             response_nodes = self.get_k_closest_nodes(target_node_id)
 
-        node_message = utility.encode_nodes(response_nodes)
+        node_message = encode_nodes(response_nodes)
 
         response = {
             "t": data["t"],
@@ -143,8 +150,8 @@ class DHTProtocol(KRPC):
             "y": "r",
             "r": {
                 "id": self.node_id,
-                "token": utility.generate_id(TOKEN_LENGTH),
-                "nodes": utility.encode_nodes(self.get_k_closest_nodes(info_hash))
+                "token": generate_id(TOKEN_LENGTH),
+                "nodes": encode_nodes(self.get_k_closest_nodes(info_hash))
             }
         }
 
@@ -178,7 +185,7 @@ class DHTProtocol(KRPC):
 
     def handle_find_node_response(self, data, address):
         node_message = data["r"]["nodes"]
-        nodes = utility.decode_nodes(node_message)
+        nodes = decode_nodes(node_message)
         self.add_nodes_to_rtable(nodes)
 
     def handle_get_peers_response(self, data, address):
@@ -225,7 +232,7 @@ class DHTProtocol(KRPC):
             self.routing_table = [[] for i in range(TABLE_NUM)]
 
             for initial_node in INITIAL_NODES:
-                nodes.append([utility.generate_node_id(), initial_node])
+                nodes.append([generate_node_id(), initial_node])
 
             nodes.append([self.node_id, self._get_sock_name()])
             self.add_nodes_to_rtable(nodes)
@@ -237,10 +244,10 @@ class DHTProtocol(KRPC):
             time.sleep(4)
 
     def find_node(self, node):
-        target_node_id = utility.generate_node_id()
+        target_node_id = generate_node_id()
 
         query = {
-            "t": utility.generate_id(TRANS_ID_LENGTH),
+            "t": generate_id(TRANS_ID_LENGTH),
             "y": "q",
             "q": "find_node",
             "a": {
