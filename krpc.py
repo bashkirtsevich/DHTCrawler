@@ -89,13 +89,13 @@ class DHTProtocol(KRPC):
     def add_nodes_to_routing_table(self, nodes):
         with self.routing_table_lock:
             for node in nodes:
-                rtable_index = get_routing_table_index(xor(node[0], self.node_id))
-                if len(self.routing_table[rtable_index]) < NEW_K:
-                    self.routing_table[rtable_index].append(node)
+                r_table_index = get_routing_table_index(xor(node[0], self.node_id))
+                if len(self.routing_table[r_table_index]) < NEW_K:
+                    self.routing_table[r_table_index].append(node)
                 else:
                     if random.randint(0, 1):
                         index = random.randint(0, NEW_K - 1)
-                        self.routing_table[rtable_index][index] = node
+                        self.routing_table[r_table_index][index] = node
                     else:
                         self.find_node(node)
 
