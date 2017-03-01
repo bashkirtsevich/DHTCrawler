@@ -29,8 +29,8 @@ class KRPC(object):
         self.__socket.bind(address)
 
     def __delay(self):
-        # Sleep 50 microseconds
-        time.sleep(50 / 1000000.0)
+        # Sleep 500 microseconds
+        time.sleep(500 / 1000000.0)
 
     def _send(self, data, address):
         try:
