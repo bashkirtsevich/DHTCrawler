@@ -28,15 +28,25 @@ class KRPC(object):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.__socket.bind(address)
 
+    def __delay(self):
+        # Sleep 50 microseconds
+        time.sleep(50 / 1000000.0)
+
     def _send(self, data, address):
         try:
             self.__socket.sendto(data, address)
+
+            self.__delay()
         except:
             pass
 
     def _receive(self):
         try:
-            return self.__socket.recvfrom(65536)
+            result = self.__socket.recvfrom(65536)
+
+            self.__delay()
+
+            return result
         except:
             return None
 
