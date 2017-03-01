@@ -74,24 +74,24 @@ def main():
                 "timestamp": datetime.datetime.utcnow()
             })
 
-        node_num = config.NODE_NUM
         nodes = []
 
         routing_tables = get_routing_tables()
+        if len(routing_tables) > 0:
+            for routing_table in routing_tables:
+                node = Node(routing_table["node_id"], routing_table["routing_table"],
+                            tuple(routing_table["address"]),
+                            on_ping=print_ping_event,
+                            on_find_nodes=print_find_nodes_event,
+                            on_get_peers=save_get_peer_info_hashes,
+                            on_announce=save_info_hashes,
+                            on_save_routing_table=save_routing_table)
 
-        for i in range(min(node_num, len(routing_tables))):
-            node = Node(routing_tables[i]["node_id"], routing_tables[i]["routing_table"],
-                        tuple(routing_tables[i]["address"]),
-                        on_ping=print_ping_event,
-                        on_find_nodes=print_find_nodes_event,
-                        on_get_peers=save_get_peer_info_hashes,
-                        on_announce=save_info_hashes,
-                        on_save_routing_table=save_routing_table)
+                node.protocol.start()
+                nodes.append(node)
 
-            node.protocol.start()
-            nodes.append(node)
-
-        for i in range(len(routing_tables), node_num):
+                break
+        else:
             node = Node(address=("0.0.0.0", 12346),
                         on_ping=print_ping_event,
                         on_find_nodes=print_find_nodes_event,
