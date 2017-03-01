@@ -51,16 +51,15 @@ def main():
                 for node in bucket:
                     node[0] = utility.from_hex_to_byte(node[0])
 
-        def save_info_hashes(info_hash, host, port, announce_port):
-            print "Announce hash", utility.from_byte_to_hex(info_hash), host, port, announce_port
+        def save_info_hashes(info_hash, host, announce_port):
+            print "Announce hash", utility.from_byte_to_hex(info_hash), host, announce_port
 
             coll = database.info_hashes
 
             coll.insert({
                 "value": utility.from_byte_to_hex(info_hash),
                 "host": host,
-                "port": port,
-                "announce_port": announce_port,
+                "port": announce_port,
                 "date": datetime.datetime.utcnow()
             })
 

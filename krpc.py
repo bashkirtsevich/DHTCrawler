@@ -173,9 +173,9 @@ class DHTProtocol(KRPC):
     def handle_announce_peer_query(self, data, address):
         arguments = data["a"]
         info_hash = arguments["info_hash"]
-        announce_port = arguments["port"]
+        port = arguments["port"]
 
-        host, port = address
+        host, _ = address
 
         response = {
             "t": data["t"],
@@ -188,7 +188,7 @@ class DHTProtocol(KRPC):
         self._send_message(response, address)
 
         if self._on_announce is not None:
-            self._on_announce(info_hash, host, port, announce_port)
+            self._on_announce(info_hash, host, port)
 
     def handle_ping_response(self, data, address):
         pass
