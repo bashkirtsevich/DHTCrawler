@@ -232,7 +232,7 @@ class DHTProtocol(KRPC):
     def __client(self):
         if len(self.routing_table) == 0:
             nodes = []
-            self.routing_table = [[] for i in range(TABLE_NUM)]
+            self.routing_table = map(lambda i: [], range(TABLE_NUM))
 
             for initial_node in INITIAL_NODES:
                 nodes.append([generate_node_id(), initial_node])
