@@ -88,7 +88,7 @@ def xor(node_one_id, node_two_id):
     return result
 
 
-def get_rtable_index(distance):
+def get_routing_table_index(distance):
     if distance == 0:
         return 0
 
