@@ -69,7 +69,7 @@ class DHTProtocol(KRPC):
         self.routing_table_lock = Lock()
 
     def _send_message(self, message, address):
-        self._send(bencode(message))
+        self._send(bencode(message), address)
 
     def get_k_closest_nodes(self, node_id):
         r_table_index = get_routing_table_index(xor(self.node_id, node_id))
