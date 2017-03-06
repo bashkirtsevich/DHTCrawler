@@ -87,7 +87,5 @@ def xor(node_one_id, node_two_id):
 def get_routing_table_index(distance):
     if distance == 0:
         return 0
-
-    index = int(math.floor(math.log(math.fabs(distance), 2.0)))
-
-    return index
+    else:
+        return int(math.floor(math.log(math.fabs(distance), 2.0)))
