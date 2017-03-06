@@ -10,7 +10,7 @@ from random import randint
 
 
 def generate_id(length):
-    return reduce(lambda r, i: r + chr(randint(0, 255)), range(10), "")
+    return reduce(lambda r, i: r + chr(randint(0, 255)), range(length), "")
 
 
 def generate_node_id():
