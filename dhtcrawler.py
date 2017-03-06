@@ -73,33 +73,34 @@ def main():
                 "timestamp": datetime.datetime.utcnow()
             })
 
-        nodes = []
+        arguments = {
+            "node_id": None,
+            "routing_table": None,
+            "address": ("0.0.0.0", 12346),
+            "on_ping": print_ping_event,
+            "on_find_nodes": print_find_nodes_event,
+            "on_get_peers": save_get_peer_info_hashes,
+            "on_announce": save_info_hashes,
+            "on_save_routing_table": save_routing_table
+        }
 
         routing_tables = get_routing_tables()
+
         if len(routing_tables) > 0:
             for routing_table in routing_tables:
-                node = Node(routing_table["node_id"], routing_table["routing_table"],
-                            tuple(routing_table["address"]),
-                            on_ping=print_ping_event,
-                            on_find_nodes=print_find_nodes_event,
-                            on_get_peers=save_get_peer_info_hashes,
-                            on_announce=save_info_hashes,
-                            on_save_routing_table=save_routing_table)
-
-                node.protocol.start()
-                nodes.append(node)
+                arguments["node_id"] = routing_table["node_id"]
+                arguments["routing_table"] = routing_table["routing_table"]
+                arguments["address"] = tuple(routing_table["address"])
 
                 break
-        else:
-            node = Node(address=("0.0.0.0", 12346),
-                        on_ping=print_ping_event,
-                        on_find_nodes=print_find_nodes_event,
-                        on_get_peers=save_get_peer_info_hashes,
-                        on_announce=save_info_hashes,
-                        on_save_routing_table=save_routing_table)
 
-            node.protocol.start()
-            nodes.append(node)
+        nodes = []
+
+        node = Node(**arguments)
+        node.protocol.start()
+        
+        nodes.append(node)
+
     finally:
         client.close()
 
