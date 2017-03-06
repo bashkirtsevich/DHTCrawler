@@ -2,8 +2,11 @@
 # coding=utf-8
 
 import socket
-from utility import generate_node_id
+import time
+from utility import generate_node_id, from_hex_to_byte
 from threading import Thread
+from struct import unpack, pack
+from bencode import bencode, bdecode
 
 
 class MDLoader(object):
@@ -24,17 +27,55 @@ class MDLoader(object):
         self.__socket.send(message_data)
 
     def __receive(self, size):
-        return self.__socket.recv(size)
+        if size > 0:
+            return self.__socket.recv(size)
+        else:
+            return None
 
     def __create_handshake(self):
-        # handshake: <pstrlen><pstr><reserved><info_hash><peer_id>
         return (
             chr(19) +
             "BitTorrent protocol" +
-            8 * chr(0) +
+            from_hex_to_byte("0000000000100005") +
             self.__info_hash +
             generate_node_id()
         )
+
+    def __create_extended_handshake(self):
+        msg_data = bencode({
+            "v": "DHT Crawler",
+            "e": 0,
+            # "p": 12346,
+            # "metadata_size": metadata_size,
+            "m": {"ut_metadata": 1},
+            "reqq": 255
+        })
+        return (
+            pack("!I", len(msg_data) + 2) +
+            chr(20) +
+            chr(0) +
+            msg_data
+        )
+
+    def __create_metadata_request(self, extension_id, piece):
+        msg_data = bencode({"msg_type": 0, "piece": piece})
+        return (
+            pack("!I", len(msg_data) + 2) +
+            chr(20) +
+            chr(extension_id) +
+            msg_data
+        )
+
+    def __read_handshake(self):
+        self.__receive(68)
+
+    def __read_message(self):
+        msg_len = unpack("!I", self.__receive(4))[0]
+
+        if msg_len >= 1:
+            return unpack("B", self.__receive(1))[0], self.__receive(msg_len - 1)
+        else:
+            return None
 
     def __load(self):
         self.__connect()
@@ -43,10 +84,50 @@ class MDLoader(object):
             self.__send(self.__create_handshake())
 
             # Wait for response data
-            hs_response = self.__receive(68)
+            self.__read_handshake()
+
+            # Read next message
+            while True:
+                msg = self.__read_message()
+
+                if msg is not None:
+                    msg_id, msg_data = msg
+
+                    if msg_id == 20:
+                        e_msg_id = unpack("B", msg_data[0])[0]
+
+                        if e_msg_id == 0:
+                            extensions = bdecode(msg_data[1:])
+
+                            if "m" in extensions and "ut_metadata" in extensions["m"] and "metadata_size" in extensions:
+                                time.sleep(0.1)
+
+                                metadata_size = extensions["metadata_size"]
+                                ut_metadata_id = extensions["m"]["ut_metadata"]
+
+                                self.__send(self.__create_extended_handshake())
+
+                                time.sleep(0.1)
+
+                                for i in range(0, 1 + metadata_size / (16 * 1024)):
+                                    self.__send(self.__create_metadata_request(ut_metadata_id, i))
+
+                        elif e_msg_id == 1:
+                            torrent = bdecode(msg_data[1:])
+                            pass
+
+
         finally:
             self.__disconnect()
 
     def start(self):
         load_thread = Thread(target=self.__load)
         load_thread.start()
+
+
+if __name__ == '__main__':
+    foo = MDLoader("127.0.0.1", 62402, from_hex_to_byte("7c234da878d9b99d6bc0f1d1eb1822a52caca902"))
+    foo.start()
+
+    while True:
+        time.sleep(1)
