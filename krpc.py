@@ -28,6 +28,9 @@ class KRPC(object):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.__socket.bind(address)
 
+    def __del__(self):
+        self.__socket.close()
+
     def __delay(self):
         # Sleep 500 microseconds
         time.sleep(500 / 1000000.0)
