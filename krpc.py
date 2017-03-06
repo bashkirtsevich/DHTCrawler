@@ -16,12 +16,6 @@ from threading import Lock, Thread
 from config import INITIAL_NODES
 from bencode import bencode, bdecode
 
-K = 8
-NEW_K = 1500
-TABLE_NUM = 160
-TOKEN_LENGTH = 5
-TRANS_ID_LENGTH = 2
-
 
 class KRPC(object):
     def __init__(self, address):
@@ -58,6 +52,12 @@ class KRPC(object):
 
 
 class DHTProtocol(KRPC):
+    K = 8
+    NEW_K = 1500
+    TABLE_NUM = 160
+    TOKEN_LENGTH = 5
+    TRANS_ID_LENGTH = 2
+
     def __init__(self, node_id, routing_table, address, **kwargs):
         super(DHTProtocol, self).__init__(address)
         self.node_id = node_id
@@ -80,18 +80,18 @@ class DHTProtocol(KRPC):
         k_closest_nodes = []
 
         index = r_table_index
-        while index >= 0 and len(k_closest_nodes) < K:
+        while index >= 0 and len(k_closest_nodes) < DHTProtocol.K:
             for node in self.routing_table[index]:
-                if len(k_closest_nodes) < K:
+                if len(k_closest_nodes) < DHTProtocol.K:
                     k_closest_nodes.append(node)
                 else:
                     break
             index -= 1
 
         index = r_table_index + 1
-        while index < 160 and len(k_closest_nodes) < K:
+        while index < 160 and len(k_closest_nodes) < DHTProtocol.K:
             for node in self.routing_table[index]:
-                if len(k_closest_nodes) < K:
+                if len(k_closest_nodes) < DHTProtocol.K:
                     k_closest_nodes.append(node)
                 else:
                     break
@@ -103,11 +103,11 @@ class DHTProtocol(KRPC):
         with self.routing_table_lock:
             for node in nodes:
                 r_table_index = get_routing_table_index(xor(node[0], self.node_id))
-                if len(self.routing_table[r_table_index]) < NEW_K:
+                if len(self.routing_table[r_table_index]) < DHTProtocol.NEW_K:
                     self.routing_table[r_table_index].append(node)
                 else:
                     if random.randint(0, 1):
-                        index = random.randint(0, NEW_K - 1)
+                        index = random.randint(0, DHTProtocol.NEW_K - 1)
                         self.routing_table[r_table_index][index] = node
                     else:
                         self.find_node(node)
@@ -163,7 +163,7 @@ class DHTProtocol(KRPC):
             "y": "r",
             "r": {
                 "id": self.node_id,
-                "token": generate_id(TOKEN_LENGTH),
+                "token": generate_id(DHTProtocol.TOKEN_LENGTH),
                 "nodes": encode_nodes(self.get_k_closest_nodes(info_hash))
             }
         }
@@ -245,7 +245,7 @@ class DHTProtocol(KRPC):
     def __client(self):
         if len(self.routing_table) == 0:
             nodes = []
-            self.routing_table = map(lambda i: [], range(TABLE_NUM))
+            self.routing_table = map(lambda i: [], range(DHTProtocol.TABLE_NUM))
 
             for initial_node in INITIAL_NODES:
                 nodes.append([generate_node_id(), initial_node])
@@ -263,7 +263,7 @@ class DHTProtocol(KRPC):
         target_node_id = generate_node_id()
 
         query = {
-            "t": generate_id(TRANS_ID_LENGTH),
+            "t": generate_id(DHTProtocol.TRANS_ID_LENGTH),
             "y": "q",
             "q": "find_node",
             "a": {
