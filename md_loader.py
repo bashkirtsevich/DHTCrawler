@@ -6,15 +6,18 @@ import time
 from utility import generate_node_id, from_hex_to_byte
 from threading import Thread
 from struct import unpack, pack
-from bencode import bencode, bdecode
+from bencode import bencode, bdecode, decode_dict
 
 
 class MDLoader(object):
-    def __init__(self, host, port, info_hash):
+    def __init__(self, host, port, info_hash, on_metadata_loaded):
         self.__host = host
         self.__port = port
         self.__info_hash = info_hash
+        self.__on_metadata_loaded = on_metadata_loaded
 
+        self.__metadata_size = 0
+        self.__metadata = {}
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __connect(self):
@@ -45,8 +48,6 @@ class MDLoader(object):
         msg_data = bencode({
             "v": "DHT Crawler",
             "e": 0,
-            # "p": 12346,
-            # "metadata_size": metadata_size,
             "m": {"ut_metadata": 1},
             "reqq": 255
         })
@@ -93,30 +94,45 @@ class MDLoader(object):
                 if msg is not None:
                     msg_id, msg_data = msg
 
-                    if msg_id == 20:
-                        e_msg_id = unpack("B", msg_data[0])[0]
+                    # Ignore all other messages except "extended"
+                    if msg_id != 20:
+                        continue
 
-                        if e_msg_id == 0:
-                            extensions = bdecode(msg_data[1:])
+                    def piece_iterator(metadata_size):
+                        return range(0, 1 + metadata_size / (16 * 1024))
 
-                            if "m" in extensions and "ut_metadata" in extensions["m"] and "metadata_size" in extensions:
-                                time.sleep(0.1)
+                    e_msg_id = unpack("B", msg_data[0])[0]
 
-                                metadata_size = extensions["metadata_size"]
-                                ut_metadata_id = extensions["m"]["ut_metadata"]
+                    if e_msg_id == 0:
+                        extensions = bdecode(msg_data[1:])
 
-                                self.__send_extended_handshake()
+                        if "m" in extensions and "ut_metadata" in extensions["m"] and "metadata_size" in extensions:
+                            time.sleep(0.1)
 
-                                time.sleep(0.1)
+                            self.__metadata_size = extensions["metadata_size"]
+                            ut_metadata_id = extensions["m"]["ut_metadata"]
 
-                                for i in range(0, 1 + metadata_size / (16 * 1024)):
-                                    self.__send_metadata_request(ut_metadata_id, i)
+                            self.__send_extended_handshake()
 
-                        elif e_msg_id == 1:
-                            torrent = bdecode(msg_data[1:])
-                            pass
+                            time.sleep(0.1)
 
+                            for i in piece_iterator(self.__metadata_size):
+                                self.__send_metadata_request(ut_metadata_id, i)
 
+                    elif e_msg_id == 1:
+                        response = msg_data[1:]
+                        r_dict, r_len = decode_dict(response, len(response))
+                        self.__metadata[r_dict["piece"]] = response[r_len:]
+
+                        if reduce(lambda i, r: r + len(i), self.__metadata.values(), 0) == self.__metadata_size \
+                                and self.__on_metadata_loaded is not None:
+                            metadata = ""
+
+                            for i in piece_iterator(self.__metadata_size):
+                                metadata += self.__metadata[i]
+
+                            self.__on_metadata_loaded(metadata)
+                            return
         finally:
             self.__disconnect()
 
@@ -126,7 +142,11 @@ class MDLoader(object):
 
 
 if __name__ == '__main__':
-    foo = MDLoader("127.0.0.1", 62402, from_hex_to_byte("7c234da878d9b99d6bc0f1d1eb1822a52caca902"))
+    def print_metadata(metadata):
+        print metadata
+
+
+    foo = MDLoader("127.0.0.1", 62402, from_hex_to_byte("7c234da878d9b99d6bc0f1d1eb1822a52caca902"), print_metadata)
     foo.start()
 
     while True:
