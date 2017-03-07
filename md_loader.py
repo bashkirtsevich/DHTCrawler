@@ -32,16 +32,16 @@ class MDLoader(object):
         else:
             return None
 
-    def __create_handshake(self):
-        return (
+    def __send_handshake(self):
+        self.__send((
             chr(19) +
             "BitTorrent protocol" +
             from_hex_to_byte("0000000000100005") +
             self.__info_hash +
             generate_node_id()
-        )
+        ))
 
-    def __create_extended_handshake(self):
+    def __send_extended_handshake(self):
         msg_data = bencode({
             "v": "DHT Crawler",
             "e": 0,
@@ -50,21 +50,21 @@ class MDLoader(object):
             "m": {"ut_metadata": 1},
             "reqq": 255
         })
-        return (
+        self.__send((
             pack("!I", len(msg_data) + 2) +
             chr(20) +
             chr(0) +
             msg_data
-        )
+        ))
 
-    def __create_metadata_request(self, extension_id, piece):
+    def __send_metadata_request(self, extension_id, piece):
         msg_data = bencode({"msg_type": 0, "piece": piece})
-        return (
+        self.__send((
             pack("!I", len(msg_data) + 2) +
             chr(20) +
             chr(extension_id) +
             msg_data
-        )
+        ))
 
     def __read_handshake(self):
         self.__receive(68)
@@ -81,7 +81,7 @@ class MDLoader(object):
         self.__connect()
         try:
             # Send handshake message
-            self.__send(self.__create_handshake())
+            self.__send_handshake()
 
             # Wait for response data
             self.__read_handshake()
@@ -105,12 +105,12 @@ class MDLoader(object):
                                 metadata_size = extensions["metadata_size"]
                                 ut_metadata_id = extensions["m"]["ut_metadata"]
 
-                                self.__send(self.__create_extended_handshake())
+                                self.__send_extended_handshake()
 
                                 time.sleep(0.1)
 
                                 for i in range(0, 1 + metadata_size / (16 * 1024)):
-                                    self.__send(self.__create_metadata_request(ut_metadata_id, i))
+                                    self.__send_metadata_request(ut_metadata_id, i)
 
                         elif e_msg_id == 1:
                             torrent = bdecode(msg_data[1:])
