@@ -7,6 +7,7 @@ from utility import generate_node_id, from_hex_to_byte
 from threading import Thread
 from struct import unpack, pack
 from bencode import bencode, bdecode, decode_dict
+from hashlib import sha1
 
 
 class TorrentLoader(object):
@@ -124,14 +125,15 @@ class TorrentLoader(object):
                         r_dict, r_len = decode_dict(response, len(response))
                         self.__metadata[r_dict["piece"]] = response[r_len:]
 
-                        if reduce(lambda i, r: r + len(i), self.__metadata.values(), 0) == self.__metadata_size \
-                                and self.__on_metadata_loaded is not None:
+                        if reduce(lambda i, r: r + len(i), self.__metadata.values(), 0) == self.__metadata_size:
                             metadata = ""
 
                             for i in piece_iterator(self.__metadata_size):
                                 metadata += self.__metadata[i]
 
-                            self.__on_metadata_loaded(metadata)
+                            if self.__on_metadata_loaded is not None and sha1(metadata).digest() == self.__info_hash:
+                                self.__on_metadata_loaded(metadata)
+                                
                             return
         finally:
             self.__disconnect()
@@ -146,7 +148,8 @@ if __name__ == '__main__':
         print metadata
 
 
-    foo = TorrentLoader("127.0.0.1", 62402, from_hex_to_byte("7c234da878d9b99d6bc0f1d1eb1822a52caca902"), print_metadata)
+    foo = TorrentLoader("127.0.0.1", 62402, from_hex_to_byte("7c234da878d9b99d6bc0f1d1eb1822a52caca902"),
+                        print_metadata)
     foo.start()
 
     while True:
