@@ -11,11 +11,12 @@ from hashlib import sha1
 
 
 class TorrentLoader(object):
-    def __init__(self, host, port, info_hash, on_metadata_loaded):
+    def __init__(self, host, port, info_hash, on_metadata_loaded, on_finish):
         self.__host = host
         self.__port = port
         self.__info_hash = info_hash
         self.__on_metadata_loaded = on_metadata_loaded
+        self.__on_finish = on_finish
 
         self.__metadata_size = 0
         self.__metadata = {}
@@ -136,6 +137,9 @@ class TorrentLoader(object):
         finally:
             self.__disconnect()
 
+            if self.__on_finish is not None:
+                self.__on_finish()
+
     def start(self):
         load_thread = Thread(target=self.__load)
         load_thread.start()
@@ -147,7 +151,7 @@ if __name__ == '__main__':
 
 
     foo = TorrentLoader("127.0.0.1", 62402, from_hex_to_byte("7c234da878d9b99d6bc0f1d1eb1822a52caca902"),
-                        print_metadata)
+                        print_metadata, None)
     foo.start()
 
     while True:
