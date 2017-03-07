@@ -89,6 +89,9 @@ class TorrentLoader(object):
             # Wait for response data
             self.__read_handshake()
 
+            time.sleep(0.1)
+            self.__send_extended_handshake()
+
             # Read next message
             while True:
                 msg = self.__read_message()
@@ -113,10 +116,6 @@ class TorrentLoader(object):
 
                             self.__metadata_size = extensions["metadata_size"]
                             ut_metadata_id = extensions["m"]["ut_metadata"]
-
-                            self.__send_extended_handshake()
-
-                            time.sleep(0.1)
 
                             for i in piece_iterator(self.__metadata_size):
                                 self.__send_metadata_request(ut_metadata_id, i)
