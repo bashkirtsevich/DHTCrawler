@@ -9,7 +9,7 @@ from struct import unpack, pack
 from bencode import bencode, bdecode, decode_dict
 
 
-class MDLoader(object):
+class TorrentLoader(object):
     def __init__(self, host, port, info_hash, on_metadata_loaded):
         self.__host = host
         self.__port = port
@@ -146,7 +146,7 @@ if __name__ == '__main__':
         print metadata
 
 
-    foo = MDLoader("127.0.0.1", 62402, from_hex_to_byte("7c234da878d9b99d6bc0f1d1eb1822a52caca902"), print_metadata)
+    foo = TorrentLoader("127.0.0.1", 62402, from_hex_to_byte("7c234da878d9b99d6bc0f1d1eb1822a52caca902"), print_metadata)
     foo.start()
 
     while True:
