@@ -125,12 +125,12 @@ class TorrentLoader(object):
                         r_dict, r_len = decode_dict(response, 0)
                         self.__metadata[r_dict["piece"]] = response[r_len:]
 
-                        if reduce(lambda a, e: a + len(e), self.__metadata.values(), 0) == self.__metadata_size:
-                            metadata = reduce(lambda a, e: a + self.__metadata[e],
-                                              piece_iterator(self.__metadata_size), "")
+                        metadata = reduce(lambda a, e: a + self.__metadata[e],
+                                          piece_iterator(self.__metadata_size), "")
 
-                            if self.__on_metadata_loaded is not None and sha1(metadata).digest() == self.__info_hash:
-                                self.__on_metadata_loaded(metadata)
+                        if len(metadata) == self.__metadata_size and sha1(
+                                metadata).digest() == self.__info_hash and self.__on_metadata_loaded is not None:
+                            self.__on_metadata_loaded(metadata)
 
                             return
         finally:
