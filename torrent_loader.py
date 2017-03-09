@@ -122,11 +122,11 @@ class TorrentLoader(object):
 
                     elif e_msg_id == 1:
                         response = msg_data[1:]
-                        r_dict, r_len = decode_dict(response, len(response))
+                        r_dict, r_len = decode_dict(response, 0)
                         self.__metadata[r_dict["piece"]] = response[r_len:]
 
-                        if reduce(lambda i, r: r + len(i), self.__metadata.values(), 0) == self.__metadata_size:
-                            metadata = reduce(lambda i, r: r + self.__metadata[i],
+                        if reduce(lambda a, e: a + len(e), self.__metadata.values(), 0) == self.__metadata_size:
+                            metadata = reduce(lambda a, e: a + self.__metadata[e],
                                               piece_iterator(self.__metadata_size), "")
 
                             if self.__on_metadata_loaded is not None and sha1(metadata).digest() == self.__info_hash:
@@ -142,16 +142,3 @@ class TorrentLoader(object):
     def start(self):
         load_thread = Thread(target=self.__load)
         load_thread.start()
-
-
-if __name__ == '__main__':
-    def print_metadata(metadata):
-        print metadata
-
-
-    foo = TorrentLoader("127.0.0.1", 62402, from_hex_to_byte("7c234da878d9b99d6bc0f1d1eb1822a52caca902"),
-                        print_metadata, None)
-    foo.start()
-
-    while True:
-        time.sleep(1)
