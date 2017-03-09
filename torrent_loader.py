@@ -7,7 +7,6 @@ from utility import generate_node_id, from_hex_to_byte
 from threading import Thread
 from struct import unpack, pack
 from bencode import bencode, bdecode, decode_dict
-from hashlib import sha1
 
 
 class TorrentLoader(object):
@@ -128,8 +127,7 @@ class TorrentLoader(object):
                         metadata = reduce(lambda a, e: a + self.__metadata[e],
                                           piece_iterator(self.__metadata_size), "")
 
-                        if len(metadata) == self.__metadata_size and sha1(
-                                metadata).digest() == self.__info_hash and self.__on_metadata_loaded is not None:
+                        if len(metadata) == self.__metadata_size and self.__on_metadata_loaded is not None:
                             self.__on_metadata_loaded(metadata)
 
                             return
