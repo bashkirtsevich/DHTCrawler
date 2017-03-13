@@ -68,10 +68,12 @@ def main():
 
             torrents = database.torrents
 
-            if not info_hash in loaders and not torrents.find_one({"info_hash": info_hash}):
+            btih = utility.from_byte_to_hex(info_hash)
+
+            if not btih in loaders and not torrents.find_one({"info_hash": btih}):
                 def save_metadata(metadata):
                     torrents.insert({
-                        "info_hash": info_hash,
+                        "info_hash": btih,
                         "metadata": bdecode(metadata)
                     })
 
