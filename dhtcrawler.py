@@ -6,6 +6,7 @@ import utility
 import datetime
 from torrent_loader import TorrentLoader
 from node import Node
+from bencode import bdecode
 
 
 def main():
@@ -71,7 +72,7 @@ def main():
                 def save_metadata(metadata):
                     torrents.insert({
                         "info_hash": info_hash,
-                        "metadata": metadata
+                        "metadata": bdecode(metadata)
                     })
 
                 def release_loader():
