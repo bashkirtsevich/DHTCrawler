@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding=utf-8
 
-import config
 import pymongo
 import utility
 import datetime
+from torrent_loader import TorrentLoader
 from node import Node
 
 
@@ -12,6 +12,8 @@ def main():
     client = pymongo.MongoClient("mongodb://localhost:27017/")
     try:
         database = client.dhtcrawler
+
+        loaders = {}
 
         def handle_ping_event():
             print "Receive ping"
@@ -62,6 +64,26 @@ def main():
                 "port": announce_port,
                 "date": datetime.datetime.utcnow()
             })
+
+            torrents = database.torrents
+
+            if not info_hash in loaders and not torrents.find_one({"info_hash": info_hash}):
+                def save_metadata(metadata):
+                    torrents.insert({
+                        "info_hash": info_hash,
+                        "metadata": metadata
+                    })
+
+                def release_loader():
+                    del loaders[info_hash]
+
+                loader = TorrentLoader(host, announce_port, info_hash,
+                                       on_metadata_loaded=save_metadata,
+                                       on_finish=release_loader)
+
+                loaders[info_hash] = loader
+
+                loader.start()
 
         def handle_get_peers_event(info_hash):
             print "Get peers", utility.from_byte_to_hex(info_hash)
