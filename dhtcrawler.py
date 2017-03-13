@@ -13,10 +13,10 @@ def main():
     try:
         database = client.dhtcrawler
 
-        def print_ping_event():
+        def handle_ping_event():
             print "Receive ping"
 
-        def print_find_nodes_event():
+        def handle_find_nodes_event():
             print "Find nodes"
 
         def get_routing_tables():
@@ -30,7 +30,7 @@ def main():
 
             return routing_tables
 
-        def save_routing_table(node_id, routing_table, address):
+        def handle_save_routing_table(node_id, routing_table, address):
             coll = database.routing_tables
 
             node_id = utility.from_byte_to_hex(node_id)
@@ -51,7 +51,7 @@ def main():
                 for node in bucket:
                     node[0] = utility.from_hex_to_byte(node[0])
 
-        def save_info_hashes(info_hash, host, announce_port):
+        def handle_announce_event(info_hash, host, announce_port):
             print "Announce hash", utility.from_byte_to_hex(info_hash), host, announce_port
 
             coll = database.info_hashes
@@ -63,7 +63,7 @@ def main():
                 "date": datetime.datetime.utcnow()
             })
 
-        def save_get_peer_info_hashes(info_hash):
+        def handle_get_peers_event(info_hash):
             print "Get peers", utility.from_byte_to_hex(info_hash)
 
             coll = database.get_peer_info_hashes
@@ -77,11 +77,11 @@ def main():
             "node_id": None,
             "routing_table": None,
             "address": ("0.0.0.0", 12346),
-            "on_ping": print_ping_event,
-            "on_find_nodes": print_find_nodes_event,
-            "on_get_peers": save_get_peer_info_hashes,
-            "on_announce": save_info_hashes,
-            "on_save_routing_table": save_routing_table
+            "on_ping": handle_ping_event,
+            "on_find_nodes": handle_find_nodes_event,
+            "on_get_peers": handle_get_peers_event,
+            "on_announce": handle_announce_event,
+            "on_save_routing_table": handle_save_routing_table
         }
 
         routing_tables = get_routing_tables()
@@ -98,7 +98,7 @@ def main():
 
         node = Node(**arguments)
         node.protocol.start()
-        
+
         nodes.append(node)
 
     finally:
