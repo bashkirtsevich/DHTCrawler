@@ -22,26 +22,38 @@ class KRPC(object):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.__socket.bind(address)
 
+        self.__max_bytes_per_sec = 5 * 1024 * 1024  # 5 MBps
+
     def __del__(self):
         self.__socket.close()
 
-    def __delay(self):
-        # Sleep 500 microseconds
-        time.sleep(500 / 1000000.0)
-
     def _send(self, data, address):
         try:
+            start = time.time()
+
             self.__socket.sendto(data, address)
 
-            self.__delay()
+            end = time.time()
+
+            expected_end = start + (len(data) / self.__max_bytes_per_sec)
+
+            if expected_end > end:
+                time.sleep(abs(expected_end - end))
         except:
             pass
 
     def _receive(self):
         try:
+            start = time.time()
+
             result = self.__socket.recvfrom(65536)
 
-            self.__delay()
+            end = time.time()
+
+            expected_end = start + (len(result) / self.__max_bytes_per_sec)
+
+            if expected_end > end:
+                time.sleep(abs(expected_end - end))
 
             return result
         except:
