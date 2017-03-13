@@ -80,11 +80,9 @@ def main():
                 def release_loader():
                     del loaders[info_hash]
 
-                loader = TorrentLoader(host, announce_port, info_hash,
-                                       on_metadata_loaded=save_metadata,
-                                       on_finish=release_loader)
-
-                loaders[btih] = loader
+                loader = loaders[btih] = TorrentLoader(host, announce_port, info_hash,
+                                                       on_metadata_loaded=save_metadata,
+                                                       on_finish=release_loader)
 
                 loader.start()
 
