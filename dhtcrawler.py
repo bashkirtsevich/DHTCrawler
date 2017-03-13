@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding=utf-8
 
+import sys
+from optparse import OptionParser
 import pymongo
 import utility
 import datetime
@@ -10,6 +12,16 @@ from bencode import bdecode
 
 
 def main():
+    parser = OptionParser(version="0.1", epilog="Crawl DHT network to sniff torrent hashes", description="DHT Crawler")
+    parser.add_option("-H", "--host", dest="server_host", default="0.0.0.0",
+                      help="Local UDP server network address (default: 0.0.0.0)")
+    parser.add_option("-P", "--port", dest="server_port", default=12346,
+                      help="Local UDP server network port (default: 12346)")
+    parser.add_option("-I", "--node_id", dest="node_id", default=None,
+                      help="DHT server local node id")
+    parser.add_option("-F", "--forcibly", dest="forcibly", default=False,
+                      help="Forcibly override stored node configuration (default: False)")
+
     client = pymongo.MongoClient("mongodb://localhost:27017/")
     try:
         database = client.dhtcrawler
@@ -96,10 +108,12 @@ def main():
                 "timestamp": datetime.datetime.utcnow()
             })
 
+        (opts, args) = parser.parse_args(sys.argv[1:])
+
         arguments = {
-            "node_id": None,
+            "node_id": opts.node_id,
             "routing_table": None,
-            "address": ("0.0.0.0", 12346),
+            "address": (opts.server_host, opts.server_port),
             "on_ping": handle_ping_event,
             "on_find_nodes": handle_find_nodes_event,
             "on_get_peers": handle_get_peers_event,
@@ -109,7 +123,7 @@ def main():
 
         routing_tables = get_routing_tables()
 
-        if len(routing_tables) > 0:
+        if len(routing_tables) > 0 and not opts.forcibly:
             for routing_table in routing_tables:
                 arguments["node_id"] = routing_table["node_id"]
                 arguments["routing_table"] = routing_table["routing_table"]
