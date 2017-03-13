@@ -84,7 +84,7 @@ def main():
                                        on_metadata_loaded=save_metadata,
                                        on_finish=release_loader)
 
-                loaders[info_hash] = loader
+                loaders[btih] = loader
 
                 loader.start()
 
