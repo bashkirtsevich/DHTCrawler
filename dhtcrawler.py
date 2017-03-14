@@ -22,6 +22,8 @@ def main():
     parser.add_option("-F", "--forcibly", dest="forcibly", default=False,
                       help="Forcibly override stored node configuration (default: False)")
 
+    (opts, args) = parser.parse_args(sys.argv[1:])
+
     client = pymongo.MongoClient("mongodb://localhost:27017/")
     try:
         database = client.dhtcrawler
@@ -107,8 +109,6 @@ def main():
                 "value": utility.from_byte_to_hex(info_hash),
                 "timestamp": datetime.datetime.utcnow()
             })
-
-        (opts, args) = parser.parse_args(sys.argv[1:])
 
         arguments = {
             "node_id": opts.node_id,
