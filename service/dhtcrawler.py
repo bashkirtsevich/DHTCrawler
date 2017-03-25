@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 # coding=utf-8
 
+import datetime
 import sys
 from optparse import OptionParser
+
 import pymongo
-import utility
-import datetime
-from torrent_loader import TorrentLoader
-from node import Node
 from bencode import bdecode
+
+import utility
+from node import Node
+from torrent_loader import TorrentLoader
 
 
 def main():

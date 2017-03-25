@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>DHTCrawler</h1>
+<p>Torrents hashes</p>
+<table>
+    {% for info_hash in info_hashes %}
+    <tr>
+        <td>
+            {{info_hash}}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+</body>
+</html>
